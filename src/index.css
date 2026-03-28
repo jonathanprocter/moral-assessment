@@ -346,3 +346,26 @@ input[type="radio"]:focus {
   height: 40px;
   animation: spin 0.8s linear infinite;
 }
+
+/* Print styles */
+@media print {
+  body {
+    background: white;
+  }
+
+  .print-hide {
+    display: none !important;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    display: none !important;
+  }
+
+  .card {
+    box-shadow: none;
+    border-color: #ccc;
+  }
+}

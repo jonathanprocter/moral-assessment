@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { X, FileText, Image, FileJson, FileSpreadsheet, Link2, Check } from 'lucide-react';
 import { exportToPDF, exportToPNG, exportToJSON, exportToCSV, generateShareURL } from '../utils/export';
 
-function ExportModal({ results, chartElement, onClose, aiInsights = null }) {
+function ExportModal({ results, chartElement, onClose, aiInsights = null, summaryText = null }) {
   const [includeAI, setIncludeAI] = useState(false);
+  const [includeSummary, setIncludeSummary] = useState(true);
   const [exporting, setExporting] = useState(null);
   const [shareURL, setShareURL] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -11,7 +12,10 @@ function ExportModal({ results, chartElement, onClose, aiInsights = null }) {
   const handleExportPDF = async () => {
     try {
       setExporting('pdf');
-      await exportToPDF(results, chartElement, includeAI ? aiInsights : null);
+      await exportToPDF(results, chartElement, {
+        aiInsights: includeAI ? aiInsights : null,
+        summaryText: includeSummary ? summaryText : null
+      });
     } catch (error) {
       alert('Failed to export PDF: ' + error.message);
     } finally {
@@ -341,26 +345,45 @@ function ExportModal({ results, chartElement, onClose, aiInsights = null }) {
         </div>
 
         {/* Options */}
-        {aiInsights && (
+        {(aiInsights || summaryText) && (
           <div style={{ 
             marginTop: 'var(--space-6)',
             paddingTop: 'var(--space-4)',
             borderTop: '1px solid var(--border)'
           }}>
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 'var(--space-2)',
-              cursor: 'pointer',
-              fontSize: 'var(--text-sm)'
-            }}>
-              <input
-                type="checkbox"
-                checked={includeAI}
-                onChange={(e) => setIncludeAI(e.target.checked)}
-              />
-              Include AI insights in exports
-            </label>
+            {summaryText && (
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 'var(--space-2)',
+                cursor: 'pointer',
+                fontSize: 'var(--text-sm)',
+                marginBottom: aiInsights ? 'var(--space-2)' : 0
+              }}>
+                <input
+                  type="checkbox"
+                  checked={includeSummary}
+                  onChange={(e) => setIncludeSummary(e.target.checked)}
+                />
+                Include narrative summary in PDF
+              </label>
+            )}
+            {aiInsights && (
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 'var(--space-2)',
+                cursor: 'pointer',
+                fontSize: 'var(--text-sm)'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={includeAI}
+                  onChange={(e) => setIncludeAI(e.target.checked)}
+                />
+                Include AI insights in exports
+              </label>
+            )}
           </div>
         )}
       </div>

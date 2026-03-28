@@ -10,7 +10,7 @@ import {
   foundationDescriptions,
   politicalPatternNote 
 } from '../constants/normativeData';
-import { getInterpretationLevel, estimatePercentile, compareWithAverage } from '../utils/scoring';
+import { getInterpretationLevel, estimatePercentile, compareWithAverage, getExtremes } from '../utils/scoring';
 import { colors } from '../constants/config';
 
 function Results({ results, onRetake }) {
@@ -26,6 +26,7 @@ function Results({ results, onRetake }) {
   const isShared = Boolean(results.sharedFromUrl);
   const canUseAI = !isShared && results.responses && Object.keys(results.responses).length >= 32;
   const comparison = compareWithAverage(scores);
+  const extremes = getExtremes(scores);
 
   const individualizing = ((scores.care + scores.fairness) / 2);
   const binding = ((scores.loyalty + scores.authority + scores.sanctity) / 3);
@@ -68,6 +69,55 @@ function Results({ results, onRetake }) {
       'How do you adapt your moral language to people unlike you?'
     ];
   })();
+
+  const narrativeSections = (() => {
+    const top = foundationNames[extremes.highest.foundation];
+    const low = foundationNames[extremes.lowest.foundation];
+    const topScore = extremes.highest.score;
+    const lowScore = extremes.lowest.score;
+    const gap = Number((topScore - lowScore).toFixed(1));
+    const balanceNote = gap >= 10
+      ? 'There is a pronounced spread between your strongest and weakest foundations, which can create clear moral priorities but also sharper tradeoffs.'
+      : 'Your foundations are relatively close together, which suggests flexibility across different moral contexts.';
+
+    const avgDelta = profileDelta >= 0
+      ? `Your Individualizing average is higher by ${profileDelta} points.`
+      : `Your Binding average is higher by ${Math.abs(profileDelta)} points.`;
+
+    return {
+      overview: [
+        `Your highest foundation is ${top} (${topScore}/30), while your lowest is ${low} (${lowScore}/30). ${balanceNote}`,
+        `${profileSummary} ${avgDelta}`
+      ],
+      decisionStyle: [
+        profileLabel === 'Individualizing-leaning'
+          ? 'Likely to anchor decisions on harm reduction and fairness, especially when outcomes affect individuals.'
+          : profileLabel === 'Binding-leaning'
+            ? 'Likely to weigh cohesion, stability, and shared norms when evaluating moral tradeoffs.'
+            : 'Likely to shift moral emphasis based on context rather than a single dominant principle.'
+      ],
+      communicationTips: [
+        'Start with shared values before debating details.',
+        'Translate your strongest foundations into language others prioritize.',
+        'Acknowledge the tradeoffs you’re willing to make — it builds trust.'
+      ],
+      growthEdges: [
+        `Your strongest area (${top}) can be a moral strength; over-reliance may cause blind spots in ${low}.`,
+        'Try an occasional “swap lens” exercise: deliberately evaluate a tough issue using your lowest foundation.'
+      ]
+    };
+  })();
+
+  const summaryText = [
+    'Profile Summary',
+    narrativeSections.overview.join(' '),
+    'Decision-Making Style',
+    narrativeSections.decisionStyle.join(' '),
+    'Communication Tips',
+    narrativeSections.communicationTips.map((tip, idx) => `${idx + 1}. ${tip}`).join(' '),
+    'Growth Edges',
+    narrativeSections.growthEdges.map((tip, idx) => `${idx + 1}. ${tip}`).join(' ')
+  ].join('\n');
 
   const foundationGuidance = {
     care: {
@@ -337,6 +387,81 @@ function Results({ results, onRetake }) {
           })}
         </div>
 
+        {/* Profile Map */}
+        <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 style={{ marginBottom: 'var(--space-4)' }}>Profile Map</h2>
+          <p style={{ marginTop: 0, color: 'var(--text-secondary)' }}>
+            This map shows how your Individualizing foundations (Care + Fairness) compare to your Binding foundations
+            (Loyalty + Authority + Sanctity).
+          </p>
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            maxWidth: '520px',
+            aspectRatio: '1 / 1',
+            margin: '0 auto',
+            background: 'var(--surface-elevated)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '10%',
+              right: '10%',
+              height: '1px',
+              backgroundColor: 'var(--border)'
+            }} />
+            <div style={{
+              position: 'absolute',
+              left: '50%',
+              top: '10%',
+              bottom: '10%',
+              width: '1px',
+              backgroundColor: 'var(--border)'
+            }} />
+            <div style={{
+              position: 'absolute',
+              left: '12%',
+              top: '12%',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-secondary)'
+            }}>
+              Higher Individualizing
+            </div>
+            <div style={{
+              position: 'absolute',
+              right: '12%',
+              bottom: '12%',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-secondary)'
+            }}>
+              Higher Binding
+            </div>
+            <div style={{
+              position: 'absolute',
+              left: `${10 + (binding / 30) * 80}%`,
+              top: `${10 + (1 - (individualizing / 30)) * 80}%`,
+              transform: 'translate(-50%, -50%)',
+              width: '14px',
+              height: '14px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--accent)',
+              boxShadow: '0 6px 12px rgba(0, 0, 0, 0.2)'
+            }} />
+          </div>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginTop: 'var(--space-3)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--text-secondary)'
+          }}>
+            <span>Individualizing: {individualizing.toFixed(1)}</span>
+            <span>Binding: {binding.toFixed(1)}</span>
+          </div>
+        </div>
+
         {/* Profile Summary */}
         <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ marginBottom: 'var(--space-3)' }}>Profile Summary</h2>
@@ -356,6 +481,28 @@ function Results({ results, onRetake }) {
                 {profileLabel} ({profileDelta >= 0 ? '+' : ''}{profileDelta})
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 style={{ marginBottom: 'var(--space-4)' }}>Narrative Report</h2>
+          <div style={{ lineHeight: 'var(--leading-relaxed)' }}>
+            <p>{narrativeSections.overview[0]}</p>
+            <p>{narrativeSections.overview[1]}</p>
+            <h3 style={{ marginTop: 'var(--space-4)' }}>Decision-Making Style</h3>
+            <p>{narrativeSections.decisionStyle[0]}</p>
+            <h3 style={{ marginTop: 'var(--space-4)' }}>Communication Tips</h3>
+            <ul style={{ paddingLeft: 'var(--space-5)' }}>
+              {narrativeSections.communicationTips.map((tip, idx) => (
+                <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+              ))}
+            </ul>
+            <h3 style={{ marginTop: 'var(--space-4)' }}>Growth Edges</h3>
+            <ul style={{ paddingLeft: 'var(--space-5)' }}>
+              {narrativeSections.growthEdges.map((tip, idx) => (
+                <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+              ))}
+            </ul>
           </div>
         </div>
 
@@ -473,7 +620,7 @@ function Results({ results, onRetake }) {
         </div>
 
         {/* Action Buttons */}
-        <div style={{ 
+        <div className="print-hide" style={{ 
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: 'var(--space-4)',
@@ -524,6 +671,18 @@ function Results({ results, onRetake }) {
             <RefreshCw size={20} />
             Retake Assessment
           </button>
+          <button
+            onClick={() => window.print()}
+            className="secondary print-hide"
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: 'var(--space-2)' 
+            }}
+          >
+            Print / Save PDF
+          </button>
         </div>
 
         {/* Modals */}
@@ -533,6 +692,7 @@ function Results({ results, onRetake }) {
             chartElement={chartRef.current}
             onClose={() => setShowExportModal(false)}
             aiInsights={aiInsights}
+            summaryText={summaryText}
           />
         )}
 

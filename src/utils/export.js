@@ -8,11 +8,14 @@ import { questions } from '../data/questions.js';
  * Export results as PDF
  * @param {Object} data - Results data
  * @param {HTMLElement} chartElement - Chart element to capture
- * @param {string} aiInsights - Optional AI insights
+ * @param {Object} options - Optional export options
+ * @param {string} options.aiInsights - Optional AI insights
+ * @param {string} options.summaryText - Optional narrative summary
  * @returns {Promise<void>}
  */
-export const exportToPDF = async (data, chartElement, aiInsights = null) => {
+export const exportToPDF = async (data, chartElement, options = {}) => {
   try {
+    const { aiInsights = null, summaryText = null } = options;
     const pdf = new jsPDF('p', 'mm', 'letter');
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -79,6 +82,34 @@ export const exportToPDF = async (data, chartElement, aiInsights = null) => {
     
     yPosition += 5;
     
+    // Narrative Summary
+    if (summaryText) {
+      if (yPosition + 30 > pageHeight - margin) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Summary Narrative', margin, yPosition);
+      yPosition += 7;
+
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+
+      const lines = pdf.splitTextToSize(summaryText, pageWidth - (2 * margin));
+      for (const line of lines) {
+        if (yPosition > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.text(line, margin, yPosition);
+        yPosition += 5;
+      }
+
+      yPosition += 4;
+    }
+
     // AI Insights
     if (aiInsights) {
       if (yPosition + 30 > pageHeight - margin) {
