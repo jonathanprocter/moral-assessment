@@ -19,6 +19,7 @@ function Results({ results, onRetake }) {
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [expandedFoundation, setExpandedFoundation] = useState(null);
   const [showRadar, setShowRadar] = useState(false);
+  const [showFullReport, setShowFullReport] = useState(true);
   const [aiInsights, setAiInsights] = useState(null);
   const chartRef = useRef(null);
 
@@ -70,6 +71,12 @@ function Results({ results, onRetake }) {
       'How do you adapt your moral language to people unlike you?'
     ];
   })();
+
+  const typicalScores = averageScores;
+  const typicalIndividualizing = ((typicalScores.care + typicalScores.fairness) / 2);
+  const typicalBinding = ((typicalScores.loyalty + typicalScores.authority + typicalScores.sanctity) / 3);
+  const typicalDelta = Number((typicalIndividualizing - typicalBinding).toFixed(1));
+  const typicalLabel = typicalDelta >= 4 ? 'Individualizing-leaning' : typicalDelta <= -4 ? 'Binding-leaning' : 'Balanced';
 
   const narrativeSections = (() => {
     const top = foundationNames[extremes.highest.foundation];
@@ -123,8 +130,57 @@ function Results({ results, onRetake }) {
         `Your strongest area (${top}) can be a moral strength; over-reliance may cause blind spots in ${low}.`,
         'Try an occasional “swap lens” exercise: deliberately evaluate a tough issue using your lowest foundation.',
         'Notice when emotional intensity is rising—this often signals a foundation conflict.'
+      ],
+      longerForm: [
+        'Moral foundations are like a set of lenses. You do not use each lens equally, and that is normal. What matters most is how aware you are of the lens you are currently using.',
+        'When your strongest foundations are activated, decisions tend to feel obvious and emotionally clear. When your lower foundations are activated by other people, disagreements can feel confusing or even frustrating.',
+        'The most resilient moral reasoning often comes from deliberately slowing down and “borrowing” a weaker foundation just long enough to understand another perspective.',
+        'This profile should be read as a pattern, not a label. It reflects how you responded today and can shift with experience, context, and reflection.',
+        'Use the scenarios below as practice. The goal is not to change your values, but to recognize how they shape your judgments.'
       ]
     };
+  })();
+
+  const scenarioExamples = (() => {
+    const top = foundationNames[extremes.highest.foundation];
+    const low = foundationNames[extremes.lowest.foundation];
+    const typicalTop = (() => {
+      const entries = Object.entries(averageScores).sort((a, b) => b[1] - a[1]);
+      return foundationNames[entries[0][0]];
+    })();
+
+    return [
+      {
+        title: 'Workplace Layoffs',
+        setup: 'A company must cut 10% of roles. Leaders can either preserve team stability or protect the most vulnerable employees.',
+        you: profileLabel === 'Individualizing-leaning'
+          ? 'Likely to prioritize minimizing harm to individuals and preventing unfair burden on those already at risk.'
+          : profileLabel === 'Binding-leaning'
+            ? 'Likely to prioritize preserving team cohesion and honoring commitments to the group’s structure.'
+            : 'Likely to weigh harm reduction against team stability, looking for a balanced compromise.',
+        typical: 'Typical respondents tend to favor harm reduction and procedural fairness, but are more mixed on loyalty and authority considerations.'
+      },
+      {
+        title: 'Community Tradition',
+        setup: 'A community debate arises about changing a long-held tradition that some now see as exclusionary.',
+        you: profileLabel === 'Binding-leaning'
+          ? 'Likely to value the stabilizing role of tradition and ask how change affects shared identity.'
+          : profileLabel === 'Individualizing-leaning'
+            ? 'Likely to prioritize inclusion and challenge the tradition if it causes harm or inequity.'
+            : 'Likely to balance continuity with reform, seeking respectful evolution of the tradition.',
+        typical: `Typical respondents lean toward reform when harms are clear, but still vary based on loyalty and authority scores.`
+      },
+      {
+        title: 'Public Health vs. Personal Freedom',
+        setup: 'A policy proposal restricts some individual freedoms to reduce public health risks.',
+        you: profileLabel === 'Individualizing-leaning'
+          ? 'Likely to support restrictions if they clearly reduce harm and protect vulnerable groups.'
+          : profileLabel === 'Binding-leaning'
+            ? 'Likely to consider social order and shared responsibility, but may weigh personal liberty and tradition more heavily.'
+            : 'Likely to evaluate evidence and tradeoffs, supporting measures that feel proportionate and fair.',
+        typical: 'Typical respondents generally support measures when harm reduction is salient, but emphasize fairness and proportionality.'
+      }
+    ];
   })();
 
   const summaryText = [
@@ -139,7 +195,9 @@ function Results({ results, onRetake }) {
     'Communication Tips',
     narrativeSections.communicationTips.map((tip, idx) => `${idx + 1}. ${tip}`).join(' '),
     'Growth Edges',
-    narrativeSections.growthEdges.map((tip, idx) => `${idx + 1}. ${tip}`).join(' ')
+    narrativeSections.growthEdges.map((tip, idx) => `${idx + 1}. ${tip}`).join(' '),
+    'Scenario Examples',
+    scenarioExamples.map((scenario) => `${scenario.title}: ${scenario.setup} You: ${scenario.you} Typical: ${scenario.typical}`).join(' ')
   ].join('\n');
 
   const foundationGuidance = {
@@ -410,6 +468,27 @@ function Results({ results, onRetake }) {
           })}
         </div>
 
+        <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 style={{ marginBottom: 'var(--space-3)' }}>Comparison: You vs. Typical Respondent</h2>
+          <p style={{ marginTop: 0, color: 'var(--text-secondary)' }}>
+            “Typical respondent” reflects the moderate U.S. sample averages used in MFQ-30 research.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)' }}>
+            <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+              <h3 style={{ marginTop: 0 }}>You</h3>
+              <p style={{ margin: 0 }}><strong>Profile:</strong> {profileLabel}</p>
+              <p style={{ margin: 0 }}><strong>Individualizing:</strong> {individualizing.toFixed(1)}</p>
+              <p style={{ margin: 0 }}><strong>Binding:</strong> {binding.toFixed(1)}</p>
+            </div>
+            <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+              <h3 style={{ marginTop: 0 }}>Typical Respondent</h3>
+              <p style={{ margin: 0 }}><strong>Profile:</strong> {typicalLabel}</p>
+              <p style={{ margin: 0 }}><strong>Individualizing:</strong> {typicalIndividualizing.toFixed(1)}</p>
+              <p style={{ margin: 0 }}><strong>Binding:</strong> {typicalBinding.toFixed(1)}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Profile Map */}
         <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ marginBottom: 'var(--space-4)' }}>Profile Map</h2>
@@ -508,62 +587,101 @@ function Results({ results, onRetake }) {
         </div>
 
         <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ marginBottom: 'var(--space-4)' }}>Narrative Report</h2>
-          <div style={{ lineHeight: 'var(--leading-relaxed)' }}>
-            <div style={{ display: 'grid', gap: 'var(--space-5)' }}>
-              <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <Compass size={18} color="var(--text-secondary)" />
-                  <h3 style={{ margin: 0 }}>Overview</h3>
-                </div>
-                {narrativeSections.overview.map((text, idx) => (
-                  <p key={idx} style={{ marginBottom: idx === narrativeSections.overview.length - 1 ? 0 : 'var(--space-3)' }}>{text}</p>
-                ))}
-              </div>
-              <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <Target size={18} color="var(--text-secondary)" />
-                  <h3 style={{ margin: 0 }}>Decision-Making Style</h3>
-                </div>
-                {narrativeSections.decisionStyle.map((text, idx) => (
-                  <p key={idx} style={{ marginBottom: idx === narrativeSections.decisionStyle.length - 1 ? 0 : 'var(--space-3)' }}>{text}</p>
-                ))}
-              </div>
-              <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <FileText size={18} color="var(--text-secondary)" />
-                  <h3 style={{ margin: 0 }}>Practical Implications</h3>
-                </div>
-                <ul style={{ paddingLeft: 'var(--space-5)', marginTop: 'var(--space-3)' }}>
-                  {narrativeSections.practicalImplications.map((tip, idx) => (
-                    <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+            <h2 style={{ margin: 0 }}>Narrative Report (10–12 min read)</h2>
+            <button
+              className="secondary print-hide"
+              onClick={() => setShowFullReport((prev) => !prev)}
+              style={{ minWidth: 'auto', padding: 'var(--space-2) var(--space-3)' }}
+            >
+              {showFullReport ? 'Collapse report' : 'Expand report'}
+            </button>
+          </div>
+          {showFullReport && (
+            <div style={{ lineHeight: 'var(--leading-relaxed)' }}>
+              <div style={{ display: 'grid', gap: 'var(--space-5)' }}>
+                <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <Compass size={18} color="var(--text-secondary)" />
+                    <h3 style={{ margin: 0 }}>Overview</h3>
+                  </div>
+                  {narrativeSections.overview.map((text, idx) => (
+                    <p key={idx} style={{ marginBottom: idx === narrativeSections.overview.length - 1 ? 0 : 'var(--space-3)' }}>{text}</p>
                   ))}
-                </ul>
-              </div>
-              <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <MessageCircle size={18} color="var(--text-secondary)" />
-                  <h3 style={{ margin: 0 }}>Communication Tips</h3>
-                </div>
-                <ul style={{ paddingLeft: 'var(--space-5)', marginTop: 'var(--space-3)' }}>
-                  {narrativeSections.communicationTips.map((tip, idx) => (
-                    <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+                  {narrativeSections.longerForm.map((text, idx) => (
+                    <p key={`long-${idx}`} style={{ marginBottom: idx === narrativeSections.longerForm.length - 1 ? 0 : 'var(--space-3)' }}>{text}</p>
                   ))}
-                </ul>
-              </div>
-              <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <Target size={18} color="var(--text-secondary)" />
-                  <h3 style={{ margin: 0 }}>Growth Edges</h3>
                 </div>
-                <ul style={{ paddingLeft: 'var(--space-5)', marginTop: 'var(--space-3)' }}>
-                  {narrativeSections.growthEdges.map((tip, idx) => (
-                    <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+                <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <Target size={18} color="var(--text-secondary)" />
+                    <h3 style={{ margin: 0 }}>Decision-Making Style</h3>
+                  </div>
+                  {narrativeSections.decisionStyle.map((text, idx) => (
+                    <p key={idx} style={{ marginBottom: idx === narrativeSections.decisionStyle.length - 1 ? 0 : 'var(--space-3)' }}>{text}</p>
                   ))}
-                </ul>
+                </div>
+                <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <FileText size={18} color="var(--text-secondary)" />
+                    <h3 style={{ margin: 0 }}>Practical Implications</h3>
+                  </div>
+                  <ul style={{ paddingLeft: 'var(--space-5)', marginTop: 'var(--space-3)' }}>
+                    {narrativeSections.practicalImplications.map((tip, idx) => (
+                      <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <MessageCircle size={18} color="var(--text-secondary)" />
+                    <h3 style={{ margin: 0 }}>Relationship Implications</h3>
+                  </div>
+                  <ul style={{ paddingLeft: 'var(--space-5)', marginTop: 'var(--space-3)' }}>
+                    {narrativeSections.relationshipImplications.map((tip, idx) => (
+                      <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <MessageCircle size={18} color="var(--text-secondary)" />
+                    <h3 style={{ margin: 0 }}>Communication Tips</h3>
+                  </div>
+                  <ul style={{ paddingLeft: 'var(--space-5)', marginTop: 'var(--space-3)' }}>
+                    {narrativeSections.communicationTips.map((tip, idx) => (
+                      <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <Target size={18} color="var(--text-secondary)" />
+                    <h3 style={{ margin: 0 }}>Growth Edges</h3>
+                  </div>
+                  <ul style={{ paddingLeft: 'var(--space-5)', marginTop: 'var(--space-3)' }}>
+                    {narrativeSections.growthEdges.map((tip, idx) => (
+                      <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <Compass size={18} color="var(--text-secondary)" />
+                    <h3 style={{ margin: 0 }}>Scenario-Based Examples</h3>
+                  </div>
+                  {scenarioExamples.map((scenario, idx) => (
+                    <div key={idx} style={{ marginTop: 'var(--space-3)' }}>
+                      <h4 style={{ marginBottom: 'var(--space-2)' }}>{scenario.title}</h4>
+                      <p style={{ marginBottom: 'var(--space-2)' }}><strong>Scenario:</strong> {scenario.setup}</p>
+                      <p style={{ marginBottom: 'var(--space-2)' }}><strong>Your likely response:</strong> {scenario.you}</p>
+                      <p style={{ marginBottom: 0 }}><strong>Typical respondent:</strong> {scenario.typical}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="card" style={{ marginBottom: 'var(--space-6)', backgroundColor: 'var(--surface-elevated)' }}>
