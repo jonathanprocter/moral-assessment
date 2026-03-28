@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Download, Sparkles, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Download, Sparkles, RefreshCw, AlertTriangle, FileText, Compass, MessageCircle, Target } from 'lucide-react';
 import RadarChart from './RadarChart';
 import ExportModal from './ExportModal';
 import AIInsights from './AIInsights';
@@ -11,6 +11,7 @@ import {
   politicalPatternNote 
 } from '../constants/normativeData';
 import { getInterpretationLevel, estimatePercentile, compareWithAverage, getExtremes } from '../utils/scoring';
+import { exportToPDF } from '../utils/export';
 import { colors } from '../constants/config';
 
 function Results({ results, onRetake }) {
@@ -84,26 +85,44 @@ function Results({ results, onRetake }) {
       ? `Your Individualizing average is higher by ${profileDelta} points.`
       : `Your Binding average is higher by ${Math.abs(profileDelta)} points.`;
 
+    const tensionNote = gap >= 12
+      ? `Because the spread is sizable, conflicts may feel sharper when ${top} clashes with ${low}.`
+      : 'Because the spread is modest, you may find it easier to integrate competing moral priorities.';
+
     return {
       overview: [
         `Your highest foundation is ${top} (${topScore}/30), while your lowest is ${low} (${lowScore}/30). ${balanceNote}`,
-        `${profileSummary} ${avgDelta}`
+        `${profileSummary} ${avgDelta}`,
+        tensionNote
       ],
       decisionStyle: [
         profileLabel === 'Individualizing-leaning'
           ? 'Likely to anchor decisions on harm reduction and fairness, especially when outcomes affect individuals.'
           : profileLabel === 'Binding-leaning'
             ? 'Likely to weigh cohesion, stability, and shared norms when evaluating moral tradeoffs.'
-            : 'Likely to shift moral emphasis based on context rather than a single dominant principle.'
+            : 'Likely to shift moral emphasis based on context rather than a single dominant principle.',
+        'You may prioritize different foundations in private vs. public settings, depending on accountability and social expectations.'
+      ],
+      practicalImplications: [
+        `High ${top} can make you especially sensitive to cues that others might overlook.`,
+        `Lower ${low} may mean you underweight signals that people with stronger ${low} instincts find compelling.`,
+        'When stakes are high, you likely default to your strongest foundations for clarity.'
+      ],
+      relationshipImplications: [
+        'People who share your strongest foundations may feel immediately understood by you.',
+        'People who prioritize your lower foundations may interpret your stance as incomplete unless you explicitly acknowledge their values.',
+        'Explicitly naming tradeoffs reduces friction in disagreement.'
       ],
       communicationTips: [
         'Start with shared values before debating details.',
         'Translate your strongest foundations into language others prioritize.',
-        'Acknowledge the tradeoffs you’re willing to make — it builds trust.'
+        'Acknowledge the tradeoffs you’re willing to make — it builds trust.',
+        'Use specific examples to show how you weigh competing values.'
       ],
       growthEdges: [
         `Your strongest area (${top}) can be a moral strength; over-reliance may cause blind spots in ${low}.`,
-        'Try an occasional “swap lens” exercise: deliberately evaluate a tough issue using your lowest foundation.'
+        'Try an occasional “swap lens” exercise: deliberately evaluate a tough issue using your lowest foundation.',
+        'Notice when emotional intensity is rising—this often signals a foundation conflict.'
       ]
     };
   })();
@@ -113,6 +132,10 @@ function Results({ results, onRetake }) {
     narrativeSections.overview.join(' '),
     'Decision-Making Style',
     narrativeSections.decisionStyle.join(' '),
+    'Practical Implications',
+    narrativeSections.practicalImplications.join(' '),
+    'Relationship Implications',
+    narrativeSections.relationshipImplications.join(' '),
     'Communication Tips',
     narrativeSections.communicationTips.map((tip, idx) => `${idx + 1}. ${tip}`).join(' '),
     'Growth Edges',
@@ -487,22 +510,59 @@ function Results({ results, onRetake }) {
         <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ marginBottom: 'var(--space-4)' }}>Narrative Report</h2>
           <div style={{ lineHeight: 'var(--leading-relaxed)' }}>
-            <p>{narrativeSections.overview[0]}</p>
-            <p>{narrativeSections.overview[1]}</p>
-            <h3 style={{ marginTop: 'var(--space-4)' }}>Decision-Making Style</h3>
-            <p>{narrativeSections.decisionStyle[0]}</p>
-            <h3 style={{ marginTop: 'var(--space-4)' }}>Communication Tips</h3>
-            <ul style={{ paddingLeft: 'var(--space-5)' }}>
-              {narrativeSections.communicationTips.map((tip, idx) => (
-                <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
-              ))}
-            </ul>
-            <h3 style={{ marginTop: 'var(--space-4)' }}>Growth Edges</h3>
-            <ul style={{ paddingLeft: 'var(--space-5)' }}>
-              {narrativeSections.growthEdges.map((tip, idx) => (
-                <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
-              ))}
-            </ul>
+            <div style={{ display: 'grid', gap: 'var(--space-5)' }}>
+              <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <Compass size={18} color="var(--text-secondary)" />
+                  <h3 style={{ margin: 0 }}>Overview</h3>
+                </div>
+                {narrativeSections.overview.map((text, idx) => (
+                  <p key={idx} style={{ marginBottom: idx === narrativeSections.overview.length - 1 ? 0 : 'var(--space-3)' }}>{text}</p>
+                ))}
+              </div>
+              <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <Target size={18} color="var(--text-secondary)" />
+                  <h3 style={{ margin: 0 }}>Decision-Making Style</h3>
+                </div>
+                {narrativeSections.decisionStyle.map((text, idx) => (
+                  <p key={idx} style={{ marginBottom: idx === narrativeSections.decisionStyle.length - 1 ? 0 : 'var(--space-3)' }}>{text}</p>
+                ))}
+              </div>
+              <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <FileText size={18} color="var(--text-secondary)" />
+                  <h3 style={{ margin: 0 }}>Practical Implications</h3>
+                </div>
+                <ul style={{ paddingLeft: 'var(--space-5)', marginTop: 'var(--space-3)' }}>
+                  {narrativeSections.practicalImplications.map((tip, idx) => (
+                    <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+                  ))}
+                </ul>
+              </div>
+              <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <MessageCircle size={18} color="var(--text-secondary)" />
+                  <h3 style={{ margin: 0 }}>Communication Tips</h3>
+                </div>
+                <ul style={{ paddingLeft: 'var(--space-5)', marginTop: 'var(--space-3)' }}>
+                  {narrativeSections.communicationTips.map((tip, idx) => (
+                    <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+                  ))}
+                </ul>
+              </div>
+              <div style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--surface-elevated)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <Target size={18} color="var(--text-secondary)" />
+                  <h3 style={{ margin: 0 }}>Growth Edges</h3>
+                </div>
+                <ul style={{ paddingLeft: 'var(--space-5)', marginTop: 'var(--space-3)' }}>
+                  {narrativeSections.growthEdges.map((tip, idx) => (
+                    <li key={idx} style={{ marginBottom: 'var(--space-2)' }}>{tip}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -682,6 +742,25 @@ function Results({ results, onRetake }) {
             }}
           >
             Print / Save PDF
+          </button>
+          <button
+            onClick={async () => {
+              setShowRadar(true);
+              try {
+                await exportToPDF(results, chartRef.current, { summaryText });
+              } catch (error) {
+                alert('Failed to export PDF: ' + error.message);
+              }
+            }}
+            className="secondary print-hide"
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: 'var(--space-2)' 
+            }}
+          >
+            Download Summary PDF
           </button>
         </div>
 
